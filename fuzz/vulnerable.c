@@ -9,31 +9,21 @@ int process(char *input)
 {
 	char *out;
 	char *rest;
-	long len; /* hold the full strtol() result so we can range-check it */
+	long len; // use long so we can range-check the strtol result
 	if (strncmp(input, "u ", 2) == 0)
 	{ // upper case command
-		// how many characters of the string to upper-case
-		len = strtol(input + 2, &rest, 10);
+		len = strtol(input + 2, &rest, 10); // how many characters to upper-case
 		if (rest == input + 2)
-		{ // no digits were parsed at all
-			return 1;
-		}
+			return 1; // no number given
 		if (*rest == ' ')
-		{
-			rest += 1; // skip the single separating space (only if present)
-		}
-		// Bytes actually available after the number. The copy and the
-		// subsequent strcat() must stay within this many bytes.
+			rest += 1; // skip the separating space if present
 		size_t avail = strlen(rest);
-		// Reject negative lengths and lengths that run past the input.
-		// (strtol overflow also lands here: it saturates to LONG_MAX/MIN.)
-		if (len < 0 || (size_t)len > avail)
+		if (len < 0 || (size_t)len > avail) // reject negative/too-large len
 		{
 			printf("Specified length %ld was larger than the input!\n", len);
 			return 1;
 		}
-		// Uppercased prefix (len bytes) + untouched remainder (avail-len) + NUL.
-		out = malloc(avail + 1);
+		out = malloc(avail + 1); // enough for the whole remaining string + NUL
 		if (out == NULL)
 		{
 			printf("Failed to allocate memory\n");
@@ -59,17 +49,11 @@ int process(char *input)
 		{
 			len = strtol(input + 4, &rest, 10);
 			if (rest == input + 4)
-			{ // no digits were parsed at all
-				return 1;
-			}
+				return 1; // no number given
 			if (*rest == ' ')
-			{
-				rest += 1; // skip the single separating space (only if present)
-			}
+				rest += 1; // skip the separating space if present
 			size_t avail = strlen(rest);
-			// rest[len] must land inside the string (0..avail). Reject
-			// negative or too-large offsets to avoid an out-of-bounds write.
-			if (len < 0 || (size_t)len > avail)
+			if (len < 0 || (size_t)len > avail) // keep rest[len] in bounds
 			{
 				fprintf(stderr, "head length %ld out of range\n", len);
 				return 1;
@@ -84,9 +68,7 @@ int process(char *input)
 	}
 	else if (strcmp(input, "surprise!\n") == 0)
 	{
-		// Former "easter egg" did `*(char *)1 = 2;`, a wild write that
-		// crashes with SIGSEGV. Removed; treat it as an unknown command.
-		return 1;
+		return 1; // was *(char*)1 = 2 (crash); treat as unknown command
 	}
 	else
 	{
@@ -105,9 +87,8 @@ int main(int argc, char *argv[])
 				  "\thead <N> <string> | The first <N> bytes of <string>.\n";
 	char input[INPUTSIZE] = {0};
 
-	// Slurp input. Read at most INPUTSIZE-1 bytes and NUL-terminate so the
-	// string functions in process() never read past the buffer, even when
-	// the input fills it completely.
+	// Read at most INPUTSIZE-1 bytes and NUL-terminate so process() never
+	// reads past the buffer, even when the input fills it completely.
 	ssize_t n = read(STDIN_FILENO, input, INPUTSIZE - 1);
 	if (n < 0)
 	{
