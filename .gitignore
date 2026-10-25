@@ -1,0 +1,20 @@
+# macOS
+.DS_Store
+
+# submission tarball (regenerate with: tar -cvzf <SBU_ID>.tar.gz xploit4.c report)
+*.tar.gz
+
+# staged copies used only to build the tarball (sources live in xploits/ and fuzz/)
+/xploit4.c
+/report/
+
+# build artifacts
+*.o
+*.bin
+vulnerable
+targets/target4
+xploits/xploit4
+xploits/run-shellcode
+core
+*.core
+gadgets.txt
