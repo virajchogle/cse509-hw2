@@ -1,6 +1,6 @@
 Command line used to find this crash:
 
-afl-fuzz -i /root/inputs3 -o /root/out3 -x /root/dict/tokens.dict -- ./vulnerable
+afl-fuzz -i /root/inputs2 -o /root/out2 -x /root/dict/tokens.dict -- ./vulnerable
 
 If you can't reproduce a bug outside of afl-fuzz, be sure to set the same
 memory limit. The limit used for this fuzzing session was 50.0 MB.

@@ -1,45 +1,48 @@
-Q2 Fuzzing - Round 2 (verification of the fixes)
-================================================
+Q2 Fuzzing - Round 2 (dictionary-assisted)
+==========================================
 
 Setup
 -----
-Same procedure as round 1, but against the FIXED vulnerable.c:
-    AFL_HARDEN=1 afl-clang -g -w vulnerable.c -o vulnerable   (AFL 2.53b)
-    afl-fuzz -i inputs -o outputs -- ./vulnerable
-Same two seeds (inputs/upper, inputs/head).
+Fuzzed the round-1-fixed program (the 'u' and 'head' bugs are already patched,
+so the only remaining crash is the "surprise!" branch):
+
+    else if (strcmp(input, "surprise!\n") == 0) { *(char *)1 = 2; }
+
+That branch is guarded by an exact string compare, so plain random mutation
+essentially never produces the 10-byte magic string "surprise!\n". AFL's
+dictionary feature is the standard way past a magic-string compare, so this
+round supplies the token via -x.
+
+Dictionary (tokens.dict, included here):
+    surprise="surprise!\x0a"
+
+Command:
+    AFL_HARDEN=1 afl-clang -g -w vulnerable.c -o vulnerable
+    afl-fuzz -i inputs -o outputs -x tokens.dict -- ./vulnerable
 
 
-(1) What was checked
---------------------
-First, every crashing input from round 1 was replayed against the rebuilt
-(fixed) binary:
+Bug found (by AFL) and how it was identified
+---------------------------------------------
+fuzzer_stats: unique_crashes = 1 (6 cycles completed).
 
-    for f in round1/crashes/id:*; do ./vulnerable < "$f"; echo $?; done
+    crashes/id:000000,...  -> bytes exactly "surprise!\n"  (SIGSEGV)
 
-All 6 now exit cleanly with status 1 (usage / rejected input) instead of
-dying on a signal. The "surprise!\n" input also no longer crashes.
+Replaying it crashes immediately:
+    ./vulnerable < crashes/id:000000,sig:11,src:000000,op:havoc,rep:32
+    # -> Segmentation fault
 
-Then AFL was run fresh on the fixed binary.
+The input is the "surprise!" easter egg. Its body dereferences the literal
+address 1 (`*(char *)1 = 2;`), a wild write that always faults with SIGSEGV.
+Because the 'u' and 'head' bugs were fixed before this round, this is the only
+crash AFL reports here.
 
 
-(2) Result
-----------
-From fuzzer_stats:
-    unique_crashes : 0
-    unique_hangs   : 0
-    execs_done     : 96466
-    cycles_done    : 4        (AFL completed multiple full cycles)
-    stability      : 100.00%
+Fix
+---
+Removed the easter-egg branch. "surprise!\n" is now handled like any other
+unrecognized command (returns 1 and prints the usage message); it no longer
+performs the wild write, so it cannot crash. This does not change the
+program's intended functionality (the two documented commands, 'u' and 'head').
 
-No crashes and no hangs were found; crashes/ and hangs/ are empty. Because
-AFL completed several full cycles over the queue with zero new crashes, the
-round-1 bugs (the 'head' out-of-bounds write and the 'u' heap overflow) are
-fixed, and the two review-found defects fixed alongside them (the 'surprise!'
-wild write and the missing NUL-termination in main) do not reappear.
-
-Valid inputs still behave correctly:
-    "u 3 hello world"    -> "HELlo world"
-    "head 5 hello world" -> "hello"
-
-See ../round1/README.txt for the full description of each bug and its fix.
-The final fixed source is ../vulnerable.c (and fuzz/vulnerable.c).
+After this fix, re-running the fuzzer on the final vulnerable.c produces no
+crashes.
