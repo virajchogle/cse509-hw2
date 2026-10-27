@@ -70,6 +70,9 @@ BUG C - 'surprise!' easter egg: wild write
         `else if (strcmp(input,"surprise!\n")==0) { *(char*)1 = 2; }`
         writes to address 1 -> guaranteed SIGSEGV.
         Reproduce: printf 'surprise!\n' | ./vulnerable   (dies on SIGSEGV)
+        Plain AFL cannot guess the exact magic string "surprise!\n", so it was
+        first found by inspection here. See ../round3, where an AFL dictionary
+        lets the fuzzer reproduce this crash directly (round3/crashes/id:000000).
 
 BUG D - missing NUL termination in main()
         `read(STDIN_FILENO, input, INPUTSIZE)` can fill all 100 bytes with no
