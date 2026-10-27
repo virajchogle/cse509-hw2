@@ -87,15 +87,11 @@ int main(int argc, char *argv[])
 				  "\thead <N> <string> | The first <N> bytes of <string>.\n";
 	char input[INPUTSIZE] = {0};
 
-	// Read at most INPUTSIZE-1 bytes and NUL-terminate so process() never
-	// reads past the buffer, even when the input fills it completely.
-	ssize_t n = read(STDIN_FILENO, input, INPUTSIZE - 1);
-	if (n < 0)
+	// Slurp input
+	if (read(STDIN_FILENO, input, INPUTSIZE) < 0)
 	{
 		fprintf(stderr, "Couldn't read stdin.\n");
-		return 1;
 	}
-	input[n] = '\0';
 
 	int ret = process(input);
 	if (ret)
